@@ -1,0 +1,24 @@
+// GameOver - NoTeDejesAtrapar
+// Letrero final: texto pequeno arriba y la frase grande abajo, dentro de un marco.
+class GameOver {
+    function void show(int score) {
+        do Screen.clearScreen();
+        do Screen.setColor(true);
+        do Screen.drawRectangle(14, 30, 497, 200);       // marco negro
+        do Screen.setColor(false);
+        do Screen.drawRectangle(18, 34, 493, 196);       // interior blanco
+        do Screen.setColor(true);
+        // el pequeno: Output no tiene tildes, por eso "Creia que podria"
+        do Output.moveCursor(4, 14);
+        do HUD.text("Creia que podria desafiar al estado");
+        // el GRANDE: fuente propia a escala 3 (213 px y 303 px de ancho)
+        do BigText.drawText("BIENVENIDO A", 149, 76, 3);
+        do BigText.drawText("LA PATRIA MILAGRO", 104, 106, 3);
+        do Output.moveCursor(13, 24);
+        do HUD.text("PUNTAJE FINAL: ");
+        do Output.printInt(score);
+        do Output.moveCursor(16, 18);
+        do HUD.text("ENTER: reiniciar     Q: salir");
+        return;
+    }
+}
