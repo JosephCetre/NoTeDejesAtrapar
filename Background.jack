@@ -1,0 +1,219 @@
+// Background - NoTeDejesAtrapar
+// Escenario colombiano en una pantalla de 512 x 256, monocroma:
+//   y 0..11     franja blanca del HUD
+//   y 13..140   cielo: sol/luna/estrellas fijos + montanas (lentas), casas y palmas de cera (mas rapidas)
+//   y 141       linea del horizonte
+//   y 142..215  zona de juego (solo sprites; fondo liso para poder borrar con un rectangulo)
+//   y 216..251  carretera con rayas y marcas que se desplazan
+// Todo es periodico (se repite cada 512 px), asi el entorno se repite sin fin.
+// Solo se dibuja con Art.rect (recortado), nunca fuera de la pantalla.
+class Background {
+    field int roadOff, farOff, nearOff, farAcc, nearAcc;
+
+    constructor Background new() {
+        do reset();
+        return this;
+    }
+
+    method void reset() {
+        let roadOff = 0;
+        let farOff = 0;
+        let nearOff = 0;
+        let farAcc = 0;
+        let nearAcc = 0;
+        return;
+    }
+
+    // Pantalla completa: se usa al iniciar, al cambiar de dia/noche y tras perder una vida.
+    method void full(boolean ink) {
+        do Screen.setColor(~ink);
+        do Screen.drawRectangle(0, 0, 511, 254);
+        do Screen.setColor(false);
+        do Screen.drawRectangle(0, 0, 511, 11);          // franja blanca del HUD
+        do scene(ink);
+        do Screen.setColor(ink);
+        do Art.rect(0, 141, 511, 141);                   // horizonte
+        do Art.rect(0, 216, 511, 217);                   // borde superior de la via
+        do Art.rect(0, 250, 511, 251);                   // borde inferior de la via
+        do roadDraw(ink);
+        return;
+    }
+
+    // Avanza los desfases del paralaje segun la velocidad del juego.
+    method void scroll(int speed) {
+        let farAcc = farAcc + speed;
+        while (farAcc > 15) {
+            let farAcc = farAcc - 16;
+            let farOff = farOff + 1;
+            if (farOff > 511) { let farOff = 0; }
+        }
+        let nearAcc = nearAcc + speed;
+        while (nearAcc > 5) {
+            let nearAcc = nearAcc - 6;
+            let nearOff = nearOff + 1;
+            if (nearOff > 511) { let nearOff = 0; }
+        }
+        return;
+    }
+
+    // Redibuja SOLO la banda del cielo (y 13..140). Ningun sprite entra en esa banda.
+    method void scene(boolean ink) {
+        do Screen.setColor(~ink);
+        do Screen.drawRectangle(0, 13, 511, 140);
+        do sky(ink);
+        // montanas lejanas (lentas)
+        do mountain(70, 150, 60, farOff, ink);
+        do mountain(230, 190, 76, farOff, ink);
+        do mountain(400, 140, 52, farOff, ink);
+        // palmas de cera y casas de pueblo (mas cercanas)
+        do palm(110, nearOff, ink);
+        do palm(280, nearOff, ink);
+        do palm(420, nearOff, ink);
+        do house(20, nearOff, ink);
+        do house(190, nearOff, ink);
+        do house(345, nearOff, ink);
+        do house(470, nearOff, ink);
+        return;
+    }
+
+    // Sol de dia, luna con estrellas de noche (fijos en el cielo).
+    method void sky(boolean ink) {
+        do Screen.setColor(ink);
+        if (ink) {
+            do Screen.drawCircle(440, 40, 14);
+            do Art.rect(439, 17, 441, 22);
+            do Art.rect(439, 58, 441, 63);
+            do Art.rect(417, 39, 422, 41);
+            do Art.rect(458, 39, 463, 41);
+        }
+        else {
+            do Screen.drawCircle(440, 40, 12);
+            do Screen.setColor(true);
+            do Screen.drawCircle(446, 35, 10);       // recorte: media luna
+            do Screen.setColor(false);
+            do Art.rect(40, 30, 41, 31);
+            do Art.rect(95, 55, 96, 56);
+            do Art.rect(150, 25, 151, 26);
+            do Art.rect(210, 70, 211, 71);
+            do Art.rect(260, 35, 261, 36);
+            do Art.rect(320, 60, 321, 61);
+            do Art.rect(370, 28, 371, 29);
+            do Art.rect(400, 85, 401, 86);
+            do Art.rect(60, 100, 61, 101);
+            do Art.rect(190, 110, 191, 111);
+        }
+        return;
+    }
+
+    // Posicion en pantalla de un elemento del mundo: (mundo - desfase) modulo 512.
+    function int wrapx(int v) {
+        if (v < 0) { return v + 512; }
+        if (v > 511) { return v - 512; }
+        return v;
+    }
+
+    method void mountain(int cx, int w, int h, int off, boolean ink) {
+        var int xs;
+        let xs = Background.wrapx(cx - off);
+        do mountainAt(xs, w, h, ink);
+        do mountainAt(xs - 512, w, h, ink);          // copia para el empalme por la izquierda
+        return;
+    }
+
+    // Montana escalonada (piramide de franjas de 4 px), base en y=140.
+    method void mountainAt(int cx, int w, int h, boolean ink) {
+        var int n, k, hw, y1;
+        do Screen.setColor(ink);
+        let n = h / 4;
+        let k = 0;
+        while (k < n) {
+            let hw = ((k + 1) * (w / 2)) / n;
+            let y1 = (140 - h) + (4 * k);
+            do Art.rect(cx - hw, y1, cx + hw, y1 + 3);
+            let k = k + 1;
+        }
+        do Art.rect(cx - (w / 2), 140, cx + (w / 2), 140);
+        return;
+    }
+
+    method void palm(int cx, int off, boolean ink) {
+        var int xs;
+        let xs = Background.wrapx(cx - off);
+        do palmAt(xs, ink);
+        do palmAt(xs - 512, ink);
+        return;
+    }
+
+    // Palma de cera: tronco largo y delgado con copa pequena arriba.
+    method void palmAt(int cx, boolean ink) {
+        do Screen.setColor(~ink);
+        do Art.rect(cx - 12, 58, cx + 12, 76);       // aureola (separa de las montanas)
+        do Art.rect(cx - 3, 76, cx + 3, 140);
+        do Screen.setColor(ink);
+        do Art.rect(cx - 1, 70, cx + 1, 140);        // tronco
+        do Art.rect(cx - 8, 68, cx + 8, 69);         // copa
+        do Art.rect(cx - 6, 65, cx + 6, 67);
+        do Art.rect(cx - 3, 62, cx + 3, 64);
+        do Art.rect(cx - 9, 70, cx - 8, 73);         // hojas caidas
+        do Art.rect(cx + 8, 70, cx + 9, 73);
+        return;
+    }
+
+    method void house(int x, int off, boolean ink) {
+        var int xs;
+        let xs = Background.wrapx(x - off);
+        do houseAt(xs, ink);
+        do houseAt(xs - 512, ink);
+        return;
+    }
+
+    // Casa de pueblo con alero, ventanas y puerta.
+    method void houseAt(int x, boolean ink) {
+        do Screen.setColor(~ink);
+        do Art.rect(x - 2, 106, x + 31, 140);        // aureola
+        do Screen.setColor(ink);
+        do Art.rect(x + 3, 108, x + 26, 111);        // tejado alto
+        do Art.rect(x - 2, 112, x + 31, 119);        // alero
+        do Art.rect(x, 120, x + 29, 140);            // pared
+        do Screen.setColor(~ink);
+        do Art.rect(x + 4, 125, x + 9, 131);         // ventanas
+        do Art.rect(x + 20, 125, x + 25, 131);
+        do Art.rect(x + 12, 130, x + 17, 140);       // puerta
+        return;
+    }
+
+    // Mueve la carretera y la redibuja.
+    method void road(int speed, boolean ink) {
+        let roadOff = roadOff + speed;
+        if (roadOff > 191) { let roadOff = roadOff - 192; }
+        do roadDraw(ink);
+        return;
+    }
+
+    // Franja de y=218..249: rayas centrales (periodo 64) y marcas de asfalto (periodo 48).
+    method void roadDraw(boolean ink) {
+        var int m, x;
+        do Screen.setColor(~ink);
+        do Art.rect(0, 218, 511, 249);
+        do Screen.setColor(ink);
+        let m = roadOff - ((roadOff / 64) * 64);
+        let x = 0 - m;
+        while (x < 512) {
+            do Art.rect(x, 234, x + 31, 235);
+            let x = x + 64;
+        }
+        let m = roadOff - ((roadOff / 48) * 48);
+        let x = 0 - m;
+        while (x < 512) {
+            do Art.rect(x, 224, x, 226);
+            do Art.rect(x + 24, 242, x + 24, 244);
+            let x = x + 48;
+        }
+        return;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}

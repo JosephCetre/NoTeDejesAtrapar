@@ -1,0 +1,44 @@
+// DayNight - NoTeDejesAtrapar
+// Temporizador del ciclo dia/noche. De dia se dibuja negro sobre blanco (ink = true);
+// de noche blanco sobre negro (ink = false).
+class DayNight {
+    field int ticks, period;
+    field boolean night;
+
+    constructor DayNight new() {
+        let period = 700;
+        do reset();
+        return this;
+    }
+
+    method void reset() {
+        let ticks = 0;
+        let night = false;
+        return;
+    }
+
+    // Avanza un ciclo. Devuelve true cuando acaba de cambiar de dia a noche (o al reves).
+    method boolean update() {
+        let ticks = ticks + 1;
+        if (ticks = period) {
+            let ticks = 0;
+            let night = ~night;
+            return true;
+        }
+        return false;
+    }
+
+    // Color de primer plano: true (negro) de dia, false (blanco) de noche.
+    method boolean ink() {
+        return ~night;
+    }
+
+    method boolean isNight() {
+        return night;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}
