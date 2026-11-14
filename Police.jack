@@ -1,0 +1,83 @@
+// Police - NoTeDejesAtrapar
+// Policia perseguidor (16 x 20 px). Corre detras del presidente; Game decide cuantos se ven
+// segun el nivel (1 al inicio, hasta 3).
+class Police {
+    field int x;
+    field boolean shown;
+    field int ox, oy, ow, oh;
+    field boolean drawn;
+
+    constructor Police new() {
+        let x = 0;
+        let shown = false;
+        let drawn = false;
+        return this;
+    }
+
+    method void forget() {
+        let drawn = false;
+        return;
+    }
+
+    method void show(int px) {
+        let x = px;
+        let shown = true;
+        return;
+    }
+
+    method void hide() {
+        let shown = false;
+        return;
+    }
+
+    method boolean isShown() {
+        return shown;
+    }
+
+    method void erase(boolean ink) {
+        if (drawn) {
+            do Screen.setColor(~ink);
+            do Art.rect(ox, oy, ox + ow - 1, oy + oh - 1);
+            let drawn = false;
+        }
+        return;
+    }
+
+    method void draw(boolean ink, int anim) {
+        if (~shown) { return; }
+        let ox = x;
+        let oy = 196;
+        let ow = 16;
+        let oh = 20;
+        let drawn = true;
+        do Screen.setColor(ink);
+        do Art.r(ox, oy, 4, 0, 11, 2);           // gorra
+        do Art.r(ox, oy, 9, 3, 14, 3);           // visera
+        do Art.r(ox, oy, 5, 3, 10, 7);           // cabeza
+        do Art.r(ox, oy, 3, 8, 12, 14);          // uniforme
+        do Art.r(ox, oy, 12, 10, 15, 11);        // bolillo
+        if (anim = 0) {
+            do Art.r(ox, oy, 4, 15, 7, 19);
+            do Art.r(ox, oy, 9, 15, 12, 19);
+        }
+        else {
+            do Art.r(ox, oy, 3, 15, 6, 16);
+            do Art.r(ox, oy, 2, 17, 5, 19);
+            do Art.r(ox, oy, 10, 15, 13, 16);
+            do Art.r(ox, oy, 11, 17, 14, 19);
+        }
+        do Screen.setColor(~ink);
+        do Art.r(ox, oy, 9, 5, 9, 5);            // ojo
+        do Art.r(ox, oy, 9, 10, 10, 11);         // placa
+        do Art.r(ox, oy, 3, 13, 12, 13);         // cinturon
+        if (anim = 0) {
+            do Art.r(ox, oy, 6, 1, 9, 1);        // luz de la sirena (parpadea)
+        }
+        return;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}

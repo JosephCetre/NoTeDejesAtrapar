@@ -1,0 +1,31 @@
+// Art - NoTeDejesAtrapar
+// Utilidades de dibujo SEGURAS: recortan (clip) cada rectangulo a la pantalla
+// para que Screen.drawRectangle nunca reciba coordenadas ilegales (ERR9).
+// La fila 255 queda reservada (no se dibuja nunca en ella).
+class Art {
+
+    // Rectangulo relleno con el color actual; coordenadas inclusivas, recortado a 0..511 x 0..254.
+    function void rect(int x1, int y1, int x2, int y2) {
+        if (x1 < 0) { let x1 = 0; }
+        if (y1 < 0) { let y1 = 0; }
+        if (x2 > 511) { let x2 = 511; }
+        if (y2 > 254) { let y2 = 254; }
+        if ((x1 > x2) | (y1 > y2)) { return; }
+        do Screen.drawRectangle(x1, y1, x2, y2);
+        return;
+    }
+
+    // Igual que rect, pero con coordenadas relativas al origen (ox, oy) del sprite.
+    function void r(int ox, int oy, int x1, int y1, int x2, int y2) {
+        do Art.rect(ox + x1, oy + y1, ox + x2, oy + y2);
+        return;
+    }
+
+    // Dibuja una linea solo si TODOS sus extremos estan dentro de la pantalla.
+    function void line(int x1, int y1, int x2, int y2) {
+        if ((x1 < 0) | (x2 < 0) | (y1 < 0) | (y2 < 0)) { return; }
+        if ((x1 > 511) | (x2 > 511) | (y1 > 254) | (y2 > 254)) { return; }
+        do Screen.drawLine(x1, y1, x2, y2);
+        return;
+    }
+}

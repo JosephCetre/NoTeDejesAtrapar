@@ -1,0 +1,133 @@
+// Player - NoTeDejesAtrapar
+// El jugador (con sombrero vueltiao). Salta con gravedad entera, se agacha y se mueve en una franja.
+// Sprite de 16 px de ancho: 16 de alto de pie, 8 agachado. Los pies siempre tocan y=216.
+class Player {
+    field int px, y, vy, h;          // posicion, velocidad vertical y alto actual
+    field boolean held;              // flecha arriba mantenida (evita re-saltar sin soltar)
+    field int ox, oy, ow, oh;        // ultimo rectangulo dibujado (para borrarlo)
+    field boolean drawn;
+
+    constructor Player new() {
+        do reset();
+        return this;
+    }
+
+    // Solo se llama justo despues de redibujar toda la pantalla.
+    method void reset() {
+        let px = 230;
+        let y = 200;
+        let vy = 0;
+        let h = 16;
+        let held = false;
+        let drawn = false;
+        return;
+    }
+
+    method void forget() {
+        let drawn = false;
+        return;
+    }
+
+    // key: codigo de Keyboard.keyPressed(). high: true con el poder de la arepa.
+    method void update(int key, boolean high) {
+        // movimiento horizontal dentro de la franja 190..310
+        if (key = 130) {
+            let px = px - 3;
+            if (px < 190) { let px = 190; }
+        }
+        if (key = 132) {
+            let px = px + 3;
+            if (px > 310) { let px = 310; }
+        }
+        // en el suelo: agacharse o saltar
+        if ((y + h) = 216) {
+            if (key = 133) {
+                let h = 8;
+                let y = 208;
+            }
+            else {
+                let h = 16;
+                let y = 200;
+            }
+            if ((key = 131) & (~held)) {
+                let h = 16;
+                let y = 200;
+                let vy = -9;
+                if (high) { let vy = -10; }
+            }
+        }
+        let held = (key = 131);
+        // fisica del salto
+        let y = y + vy;
+        let vy = vy + 1;
+        if ((y + h) > 215) {
+            let y = 216 - h;
+            let vy = 0;
+        }
+        return;
+    }
+
+    // Caja de colision (mas pequena que el sprite, para que el juego sea justo).
+    method int left()   { return px + 3; }
+    method int right()  { return px + 13; }   // exclusivo
+    method int top()    { return y + 1; }
+    method int bottom() { return y + h; }     // exclusivo
+    method int getX()   { return px; }
+
+    method void erase(boolean ink) {
+        if (drawn) {
+            do Screen.setColor(~ink);
+            do Art.rect(ox, oy, ox + ow - 1, oy + oh - 1);
+            let drawn = false;
+        }
+        return;
+    }
+
+    // anim: 0 o 1 (alterna cada pocos ciclos para animar las piernas).
+    method void draw(boolean ink, int anim) {
+        let ox = px;
+        let oy = y;
+        let ow = 16;
+        let oh = h;
+        let drawn = true;
+        do Screen.setColor(ink);
+        if (h = 8) {
+            // deslizandose / agachado
+            do Art.r(ox, oy, 10, 0, 13, 1);      // copa del sombrero
+            do Art.r(ox, oy, 8, 2, 15, 2);       // ala
+            do Art.r(ox, oy, 10, 3, 14, 5);      // cabeza
+            do Art.r(ox, oy, 3, 3, 10, 5);       // torso
+            do Art.r(ox, oy, 0, 6, 9, 7);        // piernas
+            do Screen.setColor(~ink);
+            do Art.r(ox, oy, 13, 3, 13, 3);      // ojo
+        }
+        else {
+            // corriendo / en el aire
+            do Art.r(ox, oy, 6, 0, 11, 2);       // copa del sombrero
+            do Art.r(ox, oy, 3, 3, 14, 3);       // ala
+            do Art.r(ox, oy, 6, 4, 11, 8);       // cabeza
+            do Art.r(ox, oy, 5, 9, 11, 12);      // torso
+            do Art.r(ox, oy, 11, 10, 14, 11);    // brazo hacia adelante
+            do Art.r(ox, oy, 2, 9, 4, 12);       // mochila
+            if (anim = 0) {
+                do Art.r(ox, oy, 5, 13, 7, 15);
+                do Art.r(ox, oy, 9, 13, 11, 15);
+            }
+            else {
+                do Art.r(ox, oy, 3, 13, 6, 14);
+                do Art.r(ox, oy, 2, 15, 4, 15);
+                do Art.r(ox, oy, 10, 13, 13, 14);
+                do Art.r(ox, oy, 12, 15, 14, 15);
+            }
+            do Screen.setColor(~ink);
+            do Art.r(ox, oy, 6, 2, 11, 2);       // cinta del sombrero
+            do Art.r(ox, oy, 10, 5, 10, 5);      // ojo
+        }
+        return;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}
