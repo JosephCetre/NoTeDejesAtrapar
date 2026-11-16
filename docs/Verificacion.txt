@@ -1,0 +1,44 @@
+VERIFICACION - No te dejes atrapar (Colombia)
+=============================================
+
+Como se probo
+-------------
+- Compilacion: JackCompiler oficial de Nand2Tetris (suite de software, tools/JackCompiler). Resultado: 14 clases
+  compiladas sin errores ni advertencias.
+- Ejecucion: VMEmulator oficial de Nand2Tetris en modo script (sin interfaz), con el sistema operativo Jack oficial
+  compilado (tools/OS/*.vm). Se simularon teclas escribiendo en RAM[24576] y se capturo la pantalla (RAM[16384..24575])
+  fotograma por fotograma.
+- Deteccion de "estela": se ejecuto el mismo juego dos veces con las mismas teclas; en la segunda, al final de cada
+  ciclo se repinta la pantalla completa desde cero. Si la pantalla incremental y la repintada son identicas, no quedan
+  pixeles sin borrar.
+
+Resultados
+----------
+[OK] Compila con el compilador oficial (14 clases).
+[OK] Titulo, escenario con scroll, presidente + policias animados, jugador, chiva, moto, gallinazo, cafe, arepa.
+[OK] Sin estela: 22 capturas (150 ciclos con saltos, agachado y movimiento lateral): 0 pixeles distintos en la zona
+     de juego y la carretera.
+[OK] Sin estela con dia/noche, niveles altos y 3 policias: 11 capturas (150 ciclos con 3 cambios dia/noche, saltos
+     continuos, poderes): 0 pixeles distintos en cielo, zona de juego y carretera.
+[OK] Dia y noche: se invierten los colores, aparecen luna y estrellas, el HUD conserva su franja blanca.
+[OK] Perder vidas: aparece "TE ATRAPARON!", los corazones se vacian, la ronda se reinicia.
+[OK] Game Over: letrero con "Creia que podria desafiar al estado" pequeno y "BIENVENIDO A / LA PATRIA MILAGRO" grande.
+[OK] ENTER en el Game Over reinicia la partida (puntos 0, 3 vidas).
+[OK] Ningun error del sistema operativo (ERRx) en ninguna de las pruebas.
+
+Aclaraciones
+------------
+- Para acelerar algunas pruebas se usaron COPIAS del codigo con constantes cambiadas (dia/noche cada 50 ciclos,
+  nivel cada 12 puntos, distancia inicial 12, etc.). El codigo entregado conserva los valores reales de juego.
+- En el sistema de los ciclos el tiempo real depende del emulador: ajustar "delay" en Game.new() si hace falta.
+
+NO verificado (probar en su equipo antes del 16 de noviembre)
+--------------------------------------------------------------
+- Velocidad y fluidez en el emulador de la exposicion (y si conviene subir/bajar "delay").
+- Uso de memoria tras muchas partidas seguidas (las cadenas literales se liberan, pero no se midio el heap).
+- Juego largo de varios minutos: el nivel maximo (5) y el equilibrio de dificultad no se ajustaron con jugadores reales.
+- Posible parpadeo visual del cielo (se repinta cada 3 ciclos); depende del emulador.
+
+Limite de Hack
+--------------
+El teclado entrega UNA tecla a la vez: no se puede mover (<- ->) y saltar (arriba) en el mismo instante.
