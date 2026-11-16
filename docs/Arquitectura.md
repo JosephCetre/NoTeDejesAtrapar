@@ -46,7 +46,7 @@ rectángulo liso sea correcto, la pantalla se reparte en bandas que no se mezcla
 | Banda (y) | Contenido | Quién la dibuja |
 |---|---|---|
 | 0–11 | franja blanca del HUD | `Background.full`, `HUD` |
-| 13–140 | cielo, montañas, casas, palmas | `Background.scene` (cada 3 ciclos) |
+| 13–140 | cielo, montañas, casas, palmas | `Background.scene` (cada 6 ciclos) |
 | 141 | horizonte | `Background.full` |
 | 142–215 | zona de juego (solo sprites, fondo liso) | sprites |
 | 216–251 | carretera | `Background.road` |
