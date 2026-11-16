@@ -265,10 +265,10 @@ class Game {
             let powerCool = 350 + Rng.next(250);
         }
 
-        // --- 3) fondo: carretera cada ciclo, cielo/montanas/casas cada 3 ciclos
+        // --- 3) fondo: carretera cada ciclo, cielo/montanas/casas cada 6 ciclos
         do bg.scroll(speed);
         do bg.road(speed, ink);
-        if (((ticks / 3) * 3) = ticks) { do bg.scene(ink); }
+        if (((ticks / 6) * 6) = ticks) { do bg.scene(ink); }
 
         // --- el presidente va detras a 'gap' px; los policias detras de el
         do president.place(player.getX(), gap);
