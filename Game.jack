@@ -1,0 +1,397 @@
+// Game - NoTeDejesAtrapar
+// Coordina todo: bucle principal, reglas, dificultad, colisiones y dibujo.
+// Cada ciclo (step): 1) borra los sprites del ciclo anterior  2) actualiza la logica
+// 3) mueve el fondo  4) dibuja los sprites  5) actualiza el HUD.
+// Borrar ANTES de mover y por rectangulo guardado evita la "estela" de pixeles.
+class Game {
+    field Player player;
+    field President president;
+    field Background bg;
+    field DayNight day;
+    field HUD hud;
+    field Array obstacles, police;
+    field PowerUp power;
+    field int score, lives, gap, ticks, invul, powerType, powerTime;
+    field int acc, creep, spawnDist, powerCool, level, speed, delay;
+
+    constructor Game new() {
+        var int i;
+        let player = Player.new();
+        let president = President.new();
+        let bg = Background.new();
+        let day = DayNight.new();
+        let hud = HUD.new();
+        let power = PowerUp.new();
+        let obstacles = Array.new(3);
+        let police = Array.new(3);
+        let i = 0;
+        while (i < 3) {
+            let obstacles[i] = Obstacle.new();
+            let police[i] = Police.new();
+            let i = i + 1;
+        }
+        let delay = 12;          // ms entre ciclos; subirlo si el equipo de exposicion va muy rapido
+        let lives = 3;
+        let gap = 100;
+        return this;
+    }
+
+    // Vuelve a estado inicial de la ronda. Se llama SIEMPRE justo despues de bg.full().
+    method void resetActors() {
+        var int i;
+        var Obstacle o;
+        var Police c;
+        do player.reset();
+        do president.forget();
+        let i = 0;
+        while (i < 3) {
+            let o = obstacles[i];
+            do o.reset();
+            let c = police[i];
+            do c.hide();
+            do c.forget();
+            let i = i + 1;
+        }
+        do power.reset();
+        return;
+    }
+
+    // Tras redibujar toda la pantalla ningun sprite sigue en ella: olvidar sus rectangulos.
+    method void forgetAll() {
+        var int i;
+        var Obstacle o;
+        var Police c;
+        do player.forget();
+        do president.forget();
+        let i = 0;
+        while (i < 3) {
+            let o = obstacles[i];
+            do o.forget();
+            let c = police[i];
+            do c.forget();
+            let i = i + 1;
+        }
+        do power.forget();
+        return;
+    }
+
+    method void reset() {
+        var boolean ink;
+        let score = 0;
+        let lives = 3;
+        let gap = 100;
+        let ticks = 0;
+        let invul = 40;
+        let powerType = 0;
+        let powerTime = 0;
+        let acc = 0;
+        let creep = 0;
+        let spawnDist = 300;
+        let powerCool = 260;
+        let level = 0;
+        let speed = 4;
+        do day.reset();
+        do bg.reset();
+        let ink = day.ink();
+        do bg.full(ink);
+        do hud.reset();
+        do resetActors();
+        return;
+    }
+
+    // Un choque con un obstaculo acerca al presidente (resta 20 de distancia).
+    method void hurt() {
+        if (invul = 0) {
+            let gap = gap - 20;
+            let invul = 25;
+        }
+        return;
+    }
+
+    // Aparece un obstaculo; la variedad depende del nivel (el gallinazo llega desde el nivel 2).
+    method void spawnObstacle() {
+        var int i, k, r;
+        var Obstacle o;
+        let i = 0;
+        while (i < 3) {
+            let o = obstacles[i];
+            if (~o.isActive()) {
+                let r = Rng.next(8);
+                let k = 0;
+                if (r > 2) { let k = 1; }
+                if (r = 5) { let k = 2; }
+                if (r > 5) {
+                    if (level > 0) { let k = 3; }
+                    else { let k = 1; }
+                }
+                do o.spawn(k);
+                return;
+            }
+            let i = i + 1;
+        }
+        return;
+    }
+
+    // Te atrapo el presidente: pierdes una vida.
+    method void caught() {
+        var boolean ink;
+        let ink = day.ink();
+        let lives = lives - 1;
+        if (lives > 0) {
+            do bg.full(ink);
+            do Output.moveCursor(9, 21);
+            do HUD.text(" TE ATRAPARON! ");
+            do Output.moveCursor(10, 19);
+            do HUD.text(" Vidas restantes: ");
+            do Output.printInt(lives);
+            do HUD.text(" ");
+            do Sys.wait(1200);
+            let gap = 100;
+            let invul = 60;
+            let powerType = 0;
+            let powerTime = 0;
+            let spawnDist = 300;
+            let creep = 0;
+            do bg.full(ink);
+            do hud.reset();
+            do resetActors();
+        }
+        return;
+    }
+
+    method void step(int key) {
+        var int i, n, anim, l, t, r, b;
+        var boolean ink, changed;
+        var Obstacle o;
+        var Police c;
+
+        let ticks = ticks + 1;
+        if (ticks = 6000) { let ticks = 0; }
+
+        // --- dia / noche: al cambiar se repinta todo y se olvidan los rectangulos viejos
+        let changed = day.update();
+        let ink = day.ink();
+        if (changed) {
+            do bg.full(ink);
+            do hud.reset();
+            do forgetAll();
+        }
+
+        // --- 1) BORRAR los sprites del ciclo anterior (cada uno su propio rectangulo)
+        do player.erase(ink);
+        do president.erase(ink);
+        let i = 0;
+        while (i < 3) {
+            let c = police[i];
+            do c.erase(ink);
+            let o = obstacles[i];
+            do o.erase(ink);
+            let i = i + 1;
+        }
+        do power.erase(ink);
+
+        // --- 2) dificultad: nivel por puntaje; sube velocidad, obstaculos y policias (1 a 3)
+        let level = score / 250;
+        if (level > 4) { let level = 4; }
+        let speed = 4 + level;
+        if (powerType = 1) { let speed = speed + 2; }
+        let n = 1 + level;
+        if (n > 3) { let n = 3; }
+
+        // --- temporizadores y poderes
+        if (invul > 0) { let invul = invul - 1; }
+        if (powerTime > 0) {
+            let powerTime = powerTime - 1;
+            if (powerTime = 0) { let powerType = 0; }
+        }
+        if (powerType = 1) {
+            if (((ticks & 3) = 0) & (gap < 100)) { let gap = gap + 1; }
+        }
+
+        // --- puntaje: 1 punto cada 16 px recorridos
+        let acc = acc + speed;
+        if (acc > 15) {
+            let acc = acc - 16;
+            if (score < 9999) { let score = score + 1; }
+        }
+
+        // --- los policias van estrechando el cerco poco a poco (mas policias, mas rapido)
+        let creep = creep + 1;
+        if (creep > (75 - (n * 15))) {
+            let creep = 0;
+            let gap = gap - 1;
+        }
+
+        // --- jugador
+        do player.update(key, powerType = 2);
+        let l = player.left();
+        let t = player.top();
+        let r = player.right();
+        let b = player.bottom();
+
+        // --- obstaculos: mover y chocar
+        let i = 0;
+        while (i < 3) {
+            let o = obstacles[i];
+            do o.update(speed);
+            if (o.hits(l, t, r, b)) {
+                do o.kill();
+                do hurt();
+            }
+            let i = i + 1;
+        }
+
+        // --- poder: mover y recoger
+        do power.update(speed);
+        if (power.hits(l, t, r, b)) {
+            let powerType = power.getKind() + 1;       // 1 = cafe, 2 = arepa
+            let powerTime = 150;
+            if (powerType = 1) {
+                let gap = gap + 15;
+                if (gap > 100) { let gap = 100; }
+            }
+            do power.kill();
+        }
+
+        // --- apariciones (por distancia recorrida, mas seguidas con el nivel)
+        let spawnDist = spawnDist - speed;
+        if (spawnDist < 1) {
+            do spawnObstacle();
+            let spawnDist = (240 - (level * 15)) + Rng.next(120);
+        }
+        let powerCool = powerCool - 1;
+        if (powerCool < 1) {
+            if (~power.isActive()) { do power.spawn(Rng.next(2)); }
+            let powerCool = 350 + Rng.next(250);
+        }
+
+        // --- 3) fondo: carretera cada ciclo, cielo/montanas/casas cada 3 ciclos
+        do bg.scroll(speed);
+        do bg.road(speed, ink);
+        if (((ticks / 3) * 3) = ticks) { do bg.scene(ink); }
+
+        // --- el presidente va detras a 'gap' px; los policias detras de el
+        do president.place(player.getX(), gap);
+        let i = 0;
+        while (i < 3) {
+            let c = police[i];
+            if (i < n) { do c.show(president.getX() - (22 * (i + 1))); }
+            else { do c.hide(); }
+            let i = i + 1;
+        }
+
+        // --- 4) DIBUJAR
+        let anim = ((ticks / 4) & 1);
+        do president.draw(ink, anim);
+        let i = 0;
+        while (i < 3) {
+            let c = police[i];
+            do c.draw(ink, anim);
+            let o = obstacles[i];
+            do o.draw(ink, anim);
+            let i = i + 1;
+        }
+        do power.draw(ink);
+        if ((invul = 0) | ((ticks & 1) = 0)) {
+            do player.draw(ink, anim);
+        }
+        do hud.draw(score, lives, gap, powerType, level);
+
+        // --- te alcanzaron
+        if (gap < 1) { do caught(); }
+        // FRAME_HOOK
+        return;
+    }
+
+    method void title() {
+        do Screen.clearScreen();
+        do Screen.setColor(true);
+        do BigText.drawText("NO TE DEJES ATRAPAR", 86, 40, 3);
+        do BigText.drawText("COLOMBIA", 209, 78, 2);
+        do Output.moveCursor(11, 3);
+        do HUD.text("FLECHAS IZQ/DER: moverse  ARRIBA: saltar  ABAJO: agacharse");
+        do Output.moveCursor(13, 7);
+        do HUD.text("Cafe = turbo    Arepa = salto alto    Esquiva todo!");
+        do Output.moveCursor(16, 20);
+        do HUD.text("ENTER: jugar    Q: salir");
+        do Output.moveCursor(20, 6);
+        do HUD.text("Parodia academica de ficcion - sin animo de ofender");
+        return;
+    }
+
+    method void run() {
+        var int key, seed;
+        var boolean running;
+        do BigText.init();
+        do title();
+        let seed = 1;
+        while (~(Keyboard.keyPressed() = 128)) {
+            let seed = seed + 1;
+            if (seed > 999) { let seed = 1; }
+            do Sys.wait(5);
+        }
+        do Rng.seed(seed);
+        while (~(Keyboard.keyPressed() = 0)) {
+            do Sys.wait(5);
+        }
+        let running = true;
+        while (running) {
+            do reset();
+            while ((lives > 0) & running) {
+                let key = Keyboard.keyPressed();
+                if ((key = 81) | (key = 113)) {
+                    let running = false;
+                }
+                else {
+                    do step(key);
+                    do Sys.wait(delay);
+                }
+            }
+            if (running) {
+                do GameOver.show(score);
+                while (~(Keyboard.keyPressed() = 0)) {
+                    do Sys.wait(5);
+                }
+                let key = 0;
+                while (~((key = 128) | (key = 81) | (key = 113))) {
+                    let key = Keyboard.keyPressed();
+                    do Sys.wait(5);
+                }
+                if (~(key = 128)) {
+                    let running = false;
+                }
+                while (~(Keyboard.keyPressed() = 0)) {
+                    do Sys.wait(5);
+                }
+            }
+        }
+        do Screen.clearScreen();
+        do Output.moveCursor(10, 25);
+        do HUD.text("Hasta pronto!");
+        return;
+    }
+
+    method void dispose() {
+        var int i;
+        var Obstacle o;
+        var Police c;
+        let i = 0;
+        while (i < 3) {
+            let o = obstacles[i];
+            do o.dispose();
+            let c = police[i];
+            do c.dispose();
+            let i = i + 1;
+        }
+        do obstacles.dispose();
+        do police.dispose();
+        do player.dispose();
+        do president.dispose();
+        do bg.dispose();
+        do day.dispose();
+        do hud.dispose();
+        do power.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+}
