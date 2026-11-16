@@ -1,0 +1,74 @@
+// President - NoTeDejesAtrapar
+// Caricatura del perseguidor principal (parodia ficticia). Se dibuja siempre a "gap" pixeles
+// por detras del jugador. Sprite de 20 x 24 px con los pies en y=216.
+class President {
+    field int x;
+    field int ox, oy, ow, oh;
+    field boolean drawn;
+
+    constructor President new() {
+        let x = 0;
+        let drawn = false;
+        return this;
+    }
+
+    method void forget() {
+        let drawn = false;
+        return;
+    }
+
+    // x del borde izquierdo: justo detras del jugador, separado por 'gap' pixeles.
+    method void place(int playerX, int gap) {
+        let x = playerX - 20 - gap;
+        return;
+    }
+
+    method int getX() {
+        return x;
+    }
+
+    method void erase(boolean ink) {
+        if (drawn) {
+            do Screen.setColor(~ink);
+            do Art.rect(ox, oy, ox + ow - 1, oy + oh - 1);
+            let drawn = false;
+        }
+        return;
+    }
+
+    method void draw(boolean ink, int anim) {
+        let ox = x;
+        let oy = 192;
+        let ow = 20;
+        let oh = 24;
+        let drawn = true;
+        do Screen.setColor(ink);
+        do Art.r(ox, oy, 5, 0, 14, 8);           // cabeza grande (caricatura)
+        do Art.r(ox, oy, 8, 9, 11, 10);          // cuello
+        do Art.r(ox, oy, 3, 11, 16, 19);         // traje
+        do Art.r(ox, oy, 16, 12, 19, 13);        // brazo estirado para atrapar
+        if (anim = 0) {
+            do Art.r(ox, oy, 4, 20, 8, 23);
+            do Art.r(ox, oy, 11, 20, 15, 23);
+        }
+        else {
+            do Art.r(ox, oy, 3, 20, 7, 21);
+            do Art.r(ox, oy, 2, 22, 6, 23);
+            do Art.r(ox, oy, 12, 20, 16, 21);
+            do Art.r(ox, oy, 13, 22, 17, 23);
+        }
+        do Screen.setColor(~ink);
+        do Art.r(ox, oy, 8, 3, 8, 3);            // ojo izquierdo
+        do Art.r(ox, oy, 12, 3, 12, 3);          // ojo derecho
+        do Art.r(ox, oy, 8, 6, 12, 6);           // sonrisa
+        do Art.r(ox, oy, 9, 12, 10, 17);         // corbata
+        do Art.line(ox + 4, oy + 12, ox + 15, oy + 18);   // banda cruzada
+        do Art.line(ox + 4, oy + 13, ox + 14, oy + 18);
+        return;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}
