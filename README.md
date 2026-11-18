@@ -8,7 +8,7 @@ Proyecto académico de la asignatura Organización de Computadores — Examen Pa
 > No tiene ánimo de lucro ni la intención de ofender, difamar o desprestigiar a ninguna persona, institución,
 > partido o grupo.
 
-**Video de funcionamiento y arquitectura:** _(pendiente: pegar aquí el enlace de YouTube)_
+**Video de funcionamiento:** https://www.youtube.com/watch?v=HmW0Op4Z5MQ
 
 ## Integrantes
 Joseph Buenaños · Miguel Alzate · Javier Sierra
